@@ -103,8 +103,26 @@ pnpm dev:core
 
 ---
 
-## Docker 部署
-- 目前不支持，等待我后续更新
+## Docker 部署（拉取不了镜像直接下载压缩包解压即可）
+```
+# 拉取仓库
+git clone https://github.com/XyhTender/qq-farm-automation-bot.git
+
+# 进入目录
+cd /qq-farm-automation-bot-main
+
+# 构建并后台启动
+docker compose -f docker-compose.yml up -d --build
+
+# 查看日志
+docker compose logs -f
+
+# 停止并移除容器
+docker compose down
+
+# 浏览器访问http://你的IP:3007
+```
+
 ## 二进制发布版（无需 Node.js）
 
 ### 构建

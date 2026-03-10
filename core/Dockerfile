@@ -4,21 +4,15 @@ WORKDIR /app
 
 RUN corepack enable
 
-# Copy workspace configuration
 COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
-
-# Copy project package.json files
 COPY core/package.json ./core/
 COPY web/package.json ./web/
 
-# Install all deps for build
 RUN pnpm install --frozen-lockfile
 
-# Copy source code
 COPY core ./core
 COPY web ./web
 
-# Build web
 RUN pnpm build:web
 
 # ==========================================
@@ -32,7 +26,6 @@ COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
 COPY core/package.json ./core/
 COPY web/package.json ./web/
 
-# Install only runtime deps for core
 RUN pnpm -C core install --prod --frozen-lockfile
 
 # ==========================================
@@ -44,19 +37,25 @@ WORKDIR /app/core
 ENV NODE_ENV=production
 ENV TZ=Asia/Shanghai
 
-# Copy runtime deps
+RUN apk add --no-cache tzdata && \
+    cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
+    echo "Asia/Shanghai" > /etc/timezone && \
+    apk del tzdata
+
 COPY --from=prod-deps /app/node_modules ../node_modules/
 COPY --from=prod-deps /app/core/node_modules ./node_modules/
 COPY --from=prod-deps /app/package.json ../package.json
 
-# Copy core source
 COPY --from=builder /app/core ./
-
-# Copy built web assets
 COPY --from=builder /app/web/dist ../web/dist
 
-# Expose port
-EXPOSE 3000
+RUN mkdir -p data/logs && chmod -R 755 data
 
-# Start command
+VOLUME ["/app/core/data"]
+
+EXPOSE 3007
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD wget -q --spider http://localhost:3007/api/status || exit 1
+
 CMD ["node", "client.js"]
